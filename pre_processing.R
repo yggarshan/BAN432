@@ -126,6 +126,9 @@ tdm_m <- as.matrix(newold_tdm)
 # Clean tdm_m for terms including 'â', '"' and '-'
 unlist(lapply(rownames(tdm_m), function(x) gsub(x=x,'â|“|”|^—|—$|^–|’|‘|€', ""))) # removing noise
 
+unlist(lapply(rownames(tdm_m), function(x) gsub(x=x,'([[:alnum]])', ""))) # removing noise
+
+
 # The problem with this one is that it has too many common words, must apply something
 # like the "bounds=" argument
 # Could be done through rowSums(tdm_m) and only keep higher than x and lower than y
