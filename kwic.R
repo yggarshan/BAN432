@@ -123,7 +123,9 @@ require(dplyr)
 make.KWIC <- function(index.env, business.des, n, doc.nr){
   KWIC <- tibble(keyword = business.des[index.env], 
                  surrounding = sapply(index.env,
-                                      function(i) {paste(business.des[c(((i-n):(i-1)), ((i+1):(i+n)))],collapse = " ")}),
+                                      function(i) {paste(business.des[c(((i-n):(i-1)), 
+                                                                        ((i+1):(i+n)))],
+                                                         collapse = " ")}),
                  doc.nr = doc.nr,
                  position.in.text = index.env/(length(business.des)*0.01))
   return(KWIC)
@@ -142,6 +144,6 @@ for(i in 1:length(index.emerg)){
   sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words
 }
 
-sur.words.old <- paste(sur.words, collapse="")
+sur.words.old <- paste(sur.words, collapse=" ")
 sur.words.old.split <- strsplit(sur.words.old, " ")
 
