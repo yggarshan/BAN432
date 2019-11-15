@@ -78,26 +78,20 @@ make.KWIC <- function(index.env, business.des, n, doc.nr){
 
 #Run KWIC analysis and save results to a list 
 result <- list()
+sur.words <- c()
+
 for(i in 1:108){
   result[[i]] <- make.KWIC(index.emerg[[i]],
                            new_tok[[i]],
                            n = 5,
                            doc.nr = i)
+  
+  sur.words[i] <- paste((result[[i]]$surrounding), collapse="") # surrounding words
 }
 
+sur.words.new <- paste(sur.words, collapse=" ")
+
 #Look at the result
-result[[1]]$left[1]
-result[[1]]$right[1]
-result[[1]]$surrounding[1]
+result[[1]]
 result[[5]]
 
-unite(result[[5]]$left,)
-
-test3 <- paste(paste((result[[5]]$left), collapse=""),
-              paste((result[[5]]$right), collapse=""))
-              
-              
-test1 <- paste(c(result[[5]]$right), collapse="")
-test2 <- paste(test,test1)
-
-head(test2)
