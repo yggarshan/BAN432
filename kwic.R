@@ -45,10 +45,6 @@ all_new <- tolower(all_new)                 # Make all words lower case
 all_new <- removePunctuation(all_new)       # Remove symbols
 
 
-##################################
-####TASK 3########################
-##################################
-
 #Tokanize the list 
 new_tok <- sapply(txt_new, function(i) scan(text = i,
                                                     what = "character",
@@ -57,10 +53,13 @@ new_tok <- sapply(txt_new, function(i) scan(text = i,
 #Remove unnecessary punctuation and apply tolower
 new_tok <- sapply(new_tok, function(i) removePunctuation(i))
 new_tok <- sapply(new_tok, function(i) tolower(i))
+new_tok <- sapply(new_tok, function(i) gsub(x = i, 
+                                            pattern = "nn|nns|jj|ii|nnp", 
+                                            replacement = " "))
 
 #Create a list of terms for the sustainability score
 
-dic.emerg <- "emerging technology|technology|emerging|patent|disruptive technology"
+dic.emerg <- "emerging|technology|technology|emerging|patent|disruptive technology"
 
 #Locate the terms from dic.emerg in business.des
 index.emerg <- unique(sapply(new_tok, function(i) unique(grep(dic.emerg, x = i ))))
@@ -83,15 +82,10 @@ sur.words <- c()
 for(i in 1:108){
   result[[i]] <- make.KWIC(index.emerg[[i]],
                            new_tok[[i]],
-                           n = 5,
+                           n = 10,
                            doc.nr = i)
   
-  sur.words[i] <- paste((result[[i]]$surrounding), collapse="") # surrounding words
+  sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words
 }
 
 sur.words.new <- paste(sur.words, collapse=" ")
-
-#Look at the result
-result[[1]]
-result[[5]]
-
