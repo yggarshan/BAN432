@@ -49,7 +49,7 @@ new_tok <- sapply(new_tok, function(i) gsub(x = i,
                                             pattern = "nn|nns|jj|ii|nnp", 
                                             replacement = " "))
 
-#Create a list of terms for the sustainability score
+#Create a list of terms of relevant technology terms
 
 dic.emerg <- "emerging|technology|technology|emerging|patent|disruptive technology"
 
@@ -71,7 +71,7 @@ make.KWIC <- function(index.env, business.des, n, doc.nr){
 result <- list()
 sur.words <- c()
 
-for(i in 1:108){
+for(i in 1:length(index.emerg)){
   result[[i]] <- make.KWIC(index.emerg[[i]],
                            new_tok[[i]],
                            n = 10,
@@ -94,4 +94,54 @@ txt_old <- list()
 for (i in 1:length(filenames_old)){
   txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019/", filenames_old[i]))
 }
+
+# turn into one large string of words
+all_old <- paste(txt_old, collapse=" ")     # Combine all texts to one large string
+all_old <- tolower(all_old)                 # Make all words lower case
+all_old <- removePunctuation(all_old)       # Remove symbols
+
+
+#Tokanize the list 
+old_tok <- sapply(txt_old, function(i) scan(text = i,
+                                            what = "character",
+                                            quote = ""))
+
+#Remove unnecessary punctuation and apply tolower
+old_tok <- sapply(old_tok, function(i) removePunctuation(i))
+old_tok <- sapply(old_tok, function(i) gsub(x = i, 
+                                            pattern = "nn|nns|jj|ii|nnp", 
+                                            replacement = " "))
+
+#Create a list of terms for the relevant technology terms
+dic.emerg <- "emerging|technology|technology|emerging|patent|disruptive technology"
+
+#Locate the terms from dic.emerg in business.des
+index.emerg <- unique(sapply(old_tok, function(i) unique(grep(dic.emerg, x = i ))))
+
+#Create KWIC function
+require(dplyr)
+make.KWIC <- function(index.env, business.des, n, doc.nr){
+  KWIC <- tibble(keyword = business.des[index.env], 
+                 surrounding = sapply(index.env,
+                                      function(i) {paste(business.des[c(((i-n):(i-1)), ((i+1):(i+n)))],collapse = " ")}),
+                 doc.nr = doc.nr,
+                 position.in.text = index.env/(length(business.des)*0.01))
+  return(KWIC)
+}
+
+#Run KWIC analysis and save results to a list 
+result <- list()
+sur.words <- c()
+
+for(i in 1:length(index.emerg)){
+  result[[i]] <- make.KWIC(index.emerg[[i]],
+                           old_tok[[i]],
+                           n = 10,
+                           doc.nr = i)
+  
+  sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words
+}
+
+sur.words.old <- paste(sur.words, collapse="")
+sur.words.old.split <- strsplit(sur.words.old, " ")
 
