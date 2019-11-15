@@ -7,6 +7,7 @@ library(tm)
 library(qdapTools)
 library(qdapRegex)
 library(wordcloud)
+library(tidyr)
 
 
 
@@ -144,6 +145,28 @@ for(i in 1:length(index.emerg)){
   sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words
 }
 
-sur.words.old <- paste(sur.words, collapse=" ")
+sur.words.old <- unlist(paste(sur.words, collapse=" "))
 sur.words.old.split <- strsplit(sur.words.old, " ")
+
+# create a df where all words are counted in each of the data sets
+df.new <- as.data.frame(table(sur.words.new.split))
+df.old <- as.data.frame(table(sur.words.old.split))
+
+colnames(df.new) <- c('token', 'count')
+colnames(df.old) <- c('token', 'count')
+
+df.new$age <- rep("new", nrow(df.new))
+df.old$age <- rep("old", nrow(df.old))
+
+# Turning the two df's into one combined df 
+df.full <- rbind(df.new, df.old)
+df.full <- spread(df.full, age, count)
+df.full$new <- ifelse(is.na(df.full$new), 0, df.full$new)
+df.full$old <- ifelse(is.na(df.full$old), 0, df.full$old)
+
+df.full$token <- unlist(lapply(df.full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
+
+df.full <- df.full %>% mutate(diff = new-old)
+
+
 
