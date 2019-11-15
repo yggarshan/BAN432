@@ -3,15 +3,10 @@ setwd('C:/Users/Yngve/Google Drive/Skolerelatert/NHH/Master/BAN432/Final exam')
 
 library(dplyr)
 library(tm)
-library(qdapTools)
-library(qdapRegex)
-library(wordcloud)
 library(tidyr)
-
 library(data.table)
 library(tm)
 library(stringr)
-library(dynverse)
 require(dplyr)
 
 # Function to run KWIC analysis 
@@ -51,7 +46,7 @@ remove_duplicates <- function(text_list){
 filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj"))
 
 #### New IPOs (2019) ####
-ind_new <- grep("-2019-", filenames_full)
+ind_new <- grep("-2019-|-2018-|-2017-|-2016-", filenames_full)
 filenames_new <- filenames_full[ind_new]
 
 txt_new <- list() # create list where IPO reports will be stored
@@ -83,27 +78,39 @@ new_tok <- sapply(new_tok, function(i) gsub(x = i,                        # Remo
                                             replacement = " "))
 
 #Create a list of terms of relevant technology terms
-dic.emerg <- "emerg|technolog|patent|disrupt"
+dic.emerg <- "emerg|technolog|leading"
 
 #Locate the terms from dic.emerg in business.des
 index.emerg <- unique(sapply(new_tok, function(i) unique(grep(dic.emerg, x = i ))))
 
 
 #Run KWIC analysis and save results to a list 
-result <- list()
-sur.words <- c()
+result <- list() # create new list to store KWIC results 
+sur.words <- c() # create vector to store surrounding words
 
-for(i in 1:length(index.emerg)){
-  result[[i]] <- make.KWIC(index.emerg[[i]],
-                           new_tok[[i]],
-                           n = 5,
-                           doc.nr = i)
+for(i in 1:length(index.emerg)){ # run KWIC analysis
+  result[[i]] <- make.KWIC(index.emerg[[i]], # report index
+                           new_tok[[i]],     # word that the analysis is looking for
+                           n = 5,            # amount of surrounding words to extract
+                           doc.nr = i)       # document number
   
-  sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words
+  sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words is a
+                                                                 # list of all words found
 }
 
-sur.words.new <- paste(sur.words, collapse="")
-sur.words.new.split <- strsplit(sur.words.new, " ")
+sur.words.new <- paste(sur.words, collapse="") # combine all surrounding words into one string
+sur.words.new.split <- unlist(strsplit(sur.words.new, " ")) # tokenize (split) all words from string into vector
+sur.words.new.split <- tolower(sur.words.new.split)
+sur.words.new.split <- removeNumbers(sur.words.new.split)
+sur.words.new.split <- removePunctuation(sur.words.new.split)
+sur.words.new.split <- unlist(lapply(sur.words.new.split, function(x) gsub(x=x,"([^a-zA-Z0-9])", "")))
+sur.words.new.split <- removeWords(sur.words.new.split, stopwords("en"))
+sur.words.new.split <- stemDocument(sur.words.new.split)
+
+df.new <- as.data.frame(table(sur.words.new.split))
+colnames(df.new) <- c('token', 'count')
+df.new$token <- as.character(df.new$token)
+df.new <- df.new %>% filter(token != "", nchar(token) > 2, count>1, count<150)
 
 
 
@@ -113,7 +120,8 @@ colnames(df.new) <- c('token', 'count')
 df.new$age <- rep("new", nrow(df.new))
 df.full$new <- ifelse(is.na(df.full$new), 0, df.full$new)
 
-# df.full$token <- unlist(lapply(df.full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
+df.full$token <- sapply(df.full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", "")) # removing noise
 
 
+rm(list=setdiff(ls(), c("df.new","txt_new", "filenames_n_ad", "new_tok")))
 
