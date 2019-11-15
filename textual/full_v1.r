@@ -2,26 +2,25 @@ setwd("C:/Users/vegar/Desktop/NHH/BAN432 (Textual)/Exam")
 
 library(dplyr)
 library(tm)
-library(qdapTools)
-library(qdapRegex)
 library(wordcloud)
 library(plotrix)
+library(tidyr)
 
 
 #### Extract file names ####
 
-filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019"))
+filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj"))
 
 
 #### New IPOs (2017-2019) ####
 
-ind_new <- grep("-2019-|-2018-|-2017-", filenames_full)
+ind_new <- grep("-2019-", filenames_full)
 filenames_new <- filenames_full[ind_new]
 
 txt_new <- list()
 
-for (i in 1:30){
-  txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019/", filenames_new[i]))
+for (i in 1:length(filenames_new)){
+  txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
 
       # Create corpus # 
@@ -35,10 +34,10 @@ dtm_new <- DocumentTermMatrix(new_corp,
                                          removeNumbers=T,                    # Remove all numbers
                                          stripWhitespace = T,                # Remove whitespace
                                          wordLengths = c(2,20),              # Min letters 
-                                         # add weighting here?
+                                         weighting = weightBin,
                                          bounds=list(
-                                           global = c(round(length(new_corp)*0.05), # Terms in 5 to 50%
-                                                      round(length(new_corp)*0.50))  # of the documents
+                                           global = c(round(length(new_corp)*0.005), # Terms in 5 to 50%
+                                                      round(length(new_corp)*0.40))  # of the documents
                                                     )
                                         )
                              )
@@ -47,17 +46,14 @@ new_m <- as.matrix(dtm_new)
 
 
 
-inspect(dtm_new[1:5,1:10])
-
-
 #### Old IPOs (2008-2010) ####
 
-ind_old <- grep("-2010-|-2009-|-2008-", filenames_full)
+ind_old <- grep("-2008-", filenames_full)
 filenames_old <- filenames_full[ind_old]
 
 txt_old <- list()
 
-for (i in 1:30){
+for (i in 1:length(filenames_old)){
   txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019/", filenames_old[i]))
 }
 
@@ -69,19 +65,99 @@ dtm_old <- DocumentTermMatrix(old_corp,
                               control=list(tolower=T,                          # Make all words lower case
                                            stopwords=T,                        # Remove all stopwords
                                            removePunctuation=T,                # Remove all symbols
-                                           removeNumbers=T,                    # Remove all numbers
+                                           removeNumbers=F,                    # Remove all numbers
                                            stripWhitespace = T,                # Remove whitespace
                                            wordLengths = c(2,20),              # Min letters 
-                                           # add weighting here?
+                                           weighting = weightBin,
                                            bounds=list(
-                                             global = c(round(length(old_corp)*0.05), # Terms in 5 to 50%
-                                                        round(length(old_corp)*0.50))  # of the documents
+                                             global = c(round(length(old_corp)*0.005), # Terms in 5 to 50%
+                                                        round(length(old_corp)*0.40))  # of the documents
                                                       )
                                            )
                               )
+old_m <- as.matrix(dtm_old)
+
+##### Combine old & new #####
 
 
-inspect(dtm_old[1:2,1:10])
+df_new <- data.frame(token=colnames(dtm_new), count=colSums(new_m))
+df_new$age <- rep("new", nrow(df_new))
+
+df_old <- data.frame(token=colnames(dtm_old), count=colSums(old_m))
+df_old$age <- rep("old", nrow(df_old))
+
+df_full <- rbind(df_new, df_old)
+df_full <- spread(df_full, age, count)
+df_full$new <- ifelse(is.na(df_full$new), 0, df_full$new)
+df_full$old <- ifelse(is.na(df_full$old), 0, df_full$old)
+df_full <- df_full %>% mutate(diff = new-old)
+
+df_full$token <- unlist(lapply(df_full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
+
+df_full <- df_full %>% filter(token != "")
+#
+
+
+# Prøver å lage felles corpus. Dette kan potensielt gjøre at et ord fjernes i både new og old dersom den fjernes i den ene av dem
+nouns_adjs <- VCorpus(VectorSource(c(txt_old, txt_new)))
+
+# Task 3 A
+dtm_A <- DocumentTermMatrix(nouns_adjs,
+                            control=list(tolower=T,      # specify different controls, e.g. tolower
+                                         removePunctuation=T,
+                                         removePunctuation=T,
+                                         removeNumbers=T,
+                                         weighting = weightBin,
+                                         bounds=list(
+                                           global = c(length(c(txt_new,txt_old))*0.18,
+                                                      length(c(txt_new,txt_old))*0.19) # terms in 5 to 50 of the documents
+                                         )
+                            ))
+
+
+##### Turn combined corpus into df #####
+comb_m <- as.matrix(dtm_A) # combined matrix
+
+df_comb_new <- data.frame(token=colnames(comb_m), 
+                          count=colSums(comb_m)[1:length(txt_new)])
+df_comb_new$age <- rep("new", nrow(df_comb_new))
+
+df_comb_old <- data.frame(token=colnames(comb_m), 
+                          count=colSums(comb_m)[length(txt_new)+1:length(df_comb_new)])
+df_comb_old$age <- rep("old", nrow(df_comb_old))
+
+
+df_comb_full <- rbind(df_comb_new, df_comb_old)
+df_comb_full <- spread(df_comb_full, age, count)
+df_comb_full$new <- ifelse(is.na(df_comb_full$new), 0, df_full$new)
+df_comb_full$old <- ifelse(is.na(df_comb_full$old), 0, df_full$old)
+
+
+df_full <- df_full %>% mutate(diff = new-old)
+
+#### Pyramid Plot #####
+top25_df <- df_full %>% 
+  filter_all(all_vars(.>0)) %>% 
+  top_n(n=25, wt=diff) %>% 
+  arrange(desc(diff))
+
+pyramid.plot(
+  top25_df$new, 
+  top25_df$old,
+  labels = top25_df$token, 
+  top.labels = c("OLD", "Words", "NEW"), 
+  main = "Words in Common", 
+  gap =1000,
+  space=0.2
+)
+
+
+
+
+
+
+
+
 
 
 
@@ -95,34 +171,8 @@ inspect(dtm_old[1:2,1:10])
 ##                                                                          
 #                                                                           
 
-all_new <- paste(txt_new, collapse=" ")     # Combine all texts to one large string
-all_new <- tolower(all_new)                 # Make all words lower case
-all_new <- removeNumbers(all_new)           # Remove numbers
-all_new <- removePunctuation(all_new)       # Remove symbols
-all_new <- rm_nchar_words(all_new, "1,2")   # Remove words of 2 or less letters, PS: really slow, regex probably quicker
 
-
-
-all_old <- paste(txt_old, collapse=" ")     # Combine all texts to one large string
-all_old <- tolower(all_old)                 # Make all words lower case
-all_old <- removeNumbers(all_old)           # Remove numbers
-all_old <- removePunctuation(all_old)       # Remove symbols
-all_old <- rm_nchar_words(all_old, "1,2")   # Remove words of 2 or less letters, PS: really slow, regex probably quicker
-
-
-# Create Corpus
-newold_corp <- VCorpus(VectorSource(c(all_new, all_old)))
-
-
-# Term Document Matrix (comparison.cloud() requires TDM)
-newold_tdm <- TermDocumentMatrix(newold_corp,
-                                 control = list(stopwords = T,
-                                                stripWhitespace = T,
-                                                removeNumbers = T))
-colnames(newold_tdm) <- c("NEW", "OLD")
-tdm_m <- as.matrix(newold_tdm)
-
-comparison.cloud(tdm_m, colors=c("orange", "blue"), max.words=100)
+comparison.cloud(as.matrix(df_full), colors=c("orange", "blue"), max.words=100)
 # The problem with this one is that it has too many common words, must apply something
 # like the "bounds=" argument
 # Could be done through rowSums(tdm_m) and only keep higher than x and lower than y

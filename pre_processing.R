@@ -124,9 +124,8 @@ colnames(newold_tdm) <- c("NEW", "OLD")
 tdm_m <- as.matrix(newold_tdm)
 
 # Clean tdm_m for terms including 'â', '"' and '-'
-unlist(lapply(rownames(tdm_m), function(x) gsub(x=x,'â|“|”|^—|—$|^–|’|‘|€', ""))) # removing noise
 
-unlist(lapply(rownames(tdm_m), function(x) gsub(x=x,'([[:alnum]])', ""))) # removing noise
+unlist(lapply(rownames(tdm_m), function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
 
 
 # The problem with this one is that it has too many common words, must apply something
