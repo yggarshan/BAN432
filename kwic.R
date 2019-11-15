@@ -15,21 +15,23 @@ library(dynverse)
 
 # Function to remove duplicates text files
 remove_duplicates <- function(text_list){
-  for (i in 1:length(txt_old)) {
-    for (j in 2:length(txt_old)) {
-      identical(txt_old[[i]], txt_old[[j]])
+  rows_delete = c()
+  list_delete = list()
+  for (i in 1:length(text_list)) {
+    for (j in 2:length(text_list)) {
+      identical(text_list[[i]], text_list[[j]])
       if (j < i) { rows_delete[j] <- NA
-      }   else if (identical(txt_old[[i]], txt_old[[j]]) == TRUE) {
+      }   else if (identical(text_list[[i]], text_list[[j]]) == TRUE) {
         rows_delete[j] <- j
         list_delete[[i]] <-  rows_delete[-c(which(is.na(rows_delete)),which(rows_delete==""),which(rows_delete==i))]
       } 
-      else if (identical(txt_old[[i]], txt_old[[j]]) == FALSE) {
+      else if (identical(text_list[[i]], text_list[[j]]) == FALSE) {
         rows_delete[j] <- NA
       }
     }
-    return(rows_delete)
-    return(list_delete)
   }
+  final_delete <- c(unique(unlist(list_delete)))  #2 documents are identical
+  final_text <- text_list[-c(final_delete)]
 }
 
 
@@ -46,14 +48,13 @@ for (i in 1:length(filenames_new)){
   txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
 
+txt_new <- remove_duplicates(txt_new) # remove duplicate files with 
 
 
 ###### Turn list of new words into vector
 # turn into one large string of words
 all_new <- paste(txt_new, collapse=" ")     # Combine all texts to one large string
 all_new <- tolower(all_new)                 # Make all words lower case
-all_new <- removePunctuation(all_new)       # Remove symbols
-
 
 #Tokanize the list 
 new_tok <- sapply(txt_new, function(i) scan(text = i,
@@ -110,17 +111,13 @@ txt_old <- list()
 
 for (i in 1:length(filenames_old)){
   txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_old[i]))
-  cat('Found document of company ',i,'...')
 }
+remove_duplicates(txt_old)
 
 # We noticed duplicate, identical texts, we need to delete the duplicated
-rows_delete <- vector(mode="numeric")
-list_delete <- list()
 
 
-final_delete <- c(unique(unlist(list_delete)))  #2 documents are identical
 
-txt_old<- txt_old[-c(final_delete)]
 
 # turn into one large string of words
 all_old <- paste(txt_old, collapse=" ")     # Combine all texts to one large string
