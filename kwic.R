@@ -54,34 +54,36 @@ filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns
 ind_new <- grep("-2019-", filenames_full)
 filenames_new <- filenames_full[ind_new]
 
-txt_new <- list()
+txt_new <- list() # create list where IPO reports will be stored
 
+# Extract all files in working directory that matches specified year(s)
 for (i in 1:length(filenames_new)){
   txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
 
+# Remove duplicate files with own function
 txt_new <- remove_duplicates(txt_new) # remove duplicate files with 
 
 
-###### Turn list of new words into vector
+###### Turn list of new words into vector #####
 # turn into one large string of words
 all_new <- paste(txt_new, collapse=" ")     # Combine all texts to one large string
 all_new <- tolower(all_new)                 # Make all words lower case
 
-#Tokanize the list 
+#Tokanize the list of new IPO reports 
 new_tok <- sapply(txt_new, function(i) scan(text = i,
                                                     what = "character",
                                                     quote = ""))
 
-#Remove unnecessary punctuation and apply tolower
-new_tok <- sapply(new_tok, function(i) removePunctuation(i))
-new_tok <- sapply(new_tok, function(i) tolower(i))
-new_tok <- sapply(new_tok, function(i) gsub(x = i, 
+# Data cleaning of vector of new words
+new_tok <- sapply(new_tok, function(i) removePunctuation(i))              # Remove punctuation
+new_tok <- sapply(new_tok, function(i) tolower(i))                        # Make all to lower
+new_tok <- sapply(new_tok, function(i) gsub(x = i,                        # Remove words tags
                                             pattern = "nn|nns|jj|ii|nnp", 
                                             replacement = " "))
 
 #Create a list of terms of relevant technology terms
-dic.emerg <- "emerging|technology|technology|emerging|patent|disruptive technology"
+dic.emerg <- "emerg|technolog|patent|disrupt"
 
 #Locate the terms from dic.emerg in business.des
 index.emerg <- unique(sapply(new_tok, function(i) unique(grep(dic.emerg, x = i ))))
@@ -94,7 +96,7 @@ sur.words <- c()
 for(i in 1:length(index.emerg)){
   result[[i]] <- make.KWIC(index.emerg[[i]],
                            new_tok[[i]],
-                           n = 10,
+                           n = 5,
                            doc.nr = i)
   
   sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words
@@ -172,7 +174,6 @@ df.full$new <- ifelse(is.na(df.full$new), 0, df.full$new)
 df.full$old <- ifelse(is.na(df.full$old), 0, df.full$old)
 
 
-df.full <- df.full %>% mutate(diff = new-old)
 
 
 # df.full$token <- unlist(lapply(df.full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
