@@ -1,7 +1,6 @@
 # Set current working directory
 setwd('C:/Users/Yngve/Google Drive/Skolerelatert/NHH/Master/BAN432/Final exam')
 
-
 library(dplyr)
 library(tm)
 library(qdapTools)
@@ -9,12 +8,30 @@ library(qdapRegex)
 library(wordcloud)
 library(tidyr)
 
-
-
 library(data.table)
 library(tm)
 library(stringr)
 library(dynverse)
+
+# Function to remove duplicates text files
+remove_duplicates <- function(text_list){
+  for (i in 1:length(txt_old)) {
+    for (j in 2:length(txt_old)) {
+      identical(txt_old[[i]], txt_old[[j]])
+      if (j < i) { rows_delete[j] <- NA
+      }   else if (identical(txt_old[[i]], txt_old[[j]]) == TRUE) {
+        rows_delete[j] <- j
+        list_delete[[i]] <-  rows_delete[-c(which(is.na(rows_delete)),which(rows_delete==""),which(rows_delete==i))]
+      } 
+      else if (identical(txt_old[[i]], txt_old[[j]]) == FALSE) {
+        rows_delete[j] <- NA
+      }
+    }
+    return(rows_delete)
+    return(list_delete)
+  }
+}
+
 
 #### Extract file names ####
 filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj"))
@@ -51,7 +68,6 @@ new_tok <- sapply(new_tok, function(i) gsub(x = i,
                                             replacement = " "))
 
 #Create a list of terms of relevant technology terms
-
 dic.emerg <- "emerging|technology|technology|emerging|patent|disruptive technology"
 
 #Locate the terms from dic.emerg in business.des
@@ -86,21 +102,30 @@ sur.words.new.split <- strsplit(sur.words.new, " ")
 
 
 ###### Turn list of old words into vector
-#### Old IPOs (2009-2010) ####
-ind_old <- grep("-2009-|-2010", filenames_full)
+#### Old IPOs (2009) ####
+ind_old <- grep("-2009-", filenames_full)
 filenames_old <- filenames_full[ind_old]
 
 txt_old <- list()
 
 for (i in 1:length(filenames_old)){
-  txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019/", filenames_old[i]))
+  txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_old[i]))
+  cat('Found document of company ',i,'...')
 }
+
+# We noticed duplicate, identical texts, we need to delete the duplicated
+rows_delete <- vector(mode="numeric")
+list_delete <- list()
+
+
+final_delete <- c(unique(unlist(list_delete)))  #2 documents are identical
+
+txt_old<- txt_old[-c(final_delete)]
 
 # turn into one large string of words
 all_old <- paste(txt_old, collapse=" ")     # Combine all texts to one large string
 all_old <- tolower(all_old)                 # Make all words lower case
 all_old <- removePunctuation(all_old)       # Remove symbols
-
 
 #Tokanize the list 
 old_tok <- sapply(txt_old, function(i) scan(text = i,
@@ -164,9 +189,12 @@ df.full <- spread(df.full, age, count)
 df.full$new <- ifelse(is.na(df.full$new), 0, df.full$new)
 df.full$old <- ifelse(is.na(df.full$old), 0, df.full$old)
 
-df.full$token <- unlist(lapply(df.full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
 
 df.full <- df.full %>% mutate(diff = new-old)
 
+
+# df.full$token <- unlist(lapply(df.full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
+
+##############################
 
 
