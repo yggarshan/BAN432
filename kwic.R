@@ -12,6 +12,19 @@ library(data.table)
 library(tm)
 library(stringr)
 library(dynverse)
+require(dplyr)
+
+# Function to run KWIC analysis 
+make.KWIC <- function(index.env, business.des, n, doc.nr){
+  KWIC <- tibble(keyword = business.des[index.env], 
+                 surrounding = sapply(index.env,
+                                      function(i) {paste(business.des[c(((i-n):(i-1)), 
+                                                                        ((i+1):(i+n)))],
+                                                         collapse = " ")}),
+                 doc.nr = doc.nr,
+                 position.in.text = index.env/(length(business.des)*0.01))
+  return(KWIC)
+}
 
 # Function to remove duplicates text files
 remove_duplicates <- function(text_list){
@@ -33,7 +46,6 @@ remove_duplicates <- function(text_list){
   final_delete <- c(unique(unlist(list_delete)))  #2 documents are identical
   final_text <- text_list[-c(final_delete)]
 }
-
 
 #### Extract file names ####
 filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj"))
@@ -74,16 +86,6 @@ dic.emerg <- "emerging|technology|technology|emerging|patent|disruptive technolo
 #Locate the terms from dic.emerg in business.des
 index.emerg <- unique(sapply(new_tok, function(i) unique(grep(dic.emerg, x = i ))))
 
-#Create KWIC function
-require(dplyr)
-make.KWIC <- function(index.env, business.des, n, doc.nr){
-  KWIC <- tibble(keyword = business.des[index.env], 
-                 surrounding = sapply(index.env,
-                                      function(i) {paste(business.des[c(((i-n):(i-1)), ((i+1):(i+n)))],collapse = " ")}),
-                 doc.nr = doc.nr,
-                 position.in.text = index.env/(length(business.des)*0.01))
-  return(KWIC)
-}
 
 #Run KWIC analysis and save results to a list 
 result <- list()
@@ -112,12 +114,8 @@ txt_old <- list()
 for (i in 1:length(filenames_old)){
   txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_old[i]))
 }
-remove_duplicates(txt_old)
 
-# We noticed duplicate, identical texts, we need to delete the duplicated
-
-
-
+txt_old <- remove_duplicates(txt_old) #deleting duplicate reports
 
 # turn into one large string of words
 all_old <- paste(txt_old, collapse=" ")     # Combine all texts to one large string
@@ -136,23 +134,10 @@ old_tok <- sapply(old_tok, function(i) gsub(x = i,
                                             replacement = " "))
 
 #Create a list of terms for the relevant technology terms
-dic.emerg <- "emerging|technology|technology|emerging|patent|disruptive technology"
+dic.emerg <- "emerging|technology|patent|disruptive technology"
 
-#Locate the terms from dic.emerg in business.des
+#Locate the terms from dic.emerg in old_tok
 index.emerg <- unique(sapply(old_tok, function(i) unique(grep(dic.emerg, x = i ))))
-
-#Create KWIC function
-require(dplyr)
-make.KWIC <- function(index.env, business.des, n, doc.nr){
-  KWIC <- tibble(keyword = business.des[index.env], 
-                 surrounding = sapply(index.env,
-                                      function(i) {paste(business.des[c(((i-n):(i-1)), 
-                                                                        ((i+1):(i+n)))],
-                                                         collapse = " ")}),
-                 doc.nr = doc.nr,
-                 position.in.text = index.env/(length(business.des)*0.01))
-  return(KWIC)
-}
 
 #Run KWIC analysis and save results to a list 
 result <- list()
@@ -192,6 +177,5 @@ df.full <- df.full %>% mutate(diff = new-old)
 
 # df.full$token <- unlist(lapply(df.full$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))) # removing noise
 
-##############################
 
 
