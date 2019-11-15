@@ -28,17 +28,9 @@ for (i in 1:length(filenames_new)){
   txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
 
-#### Old IPOs (2009-2010) ####
-ind_old <- grep("-2009-|-2010", filenames_full)
-filenames_old <- filenames_full[ind_old]
-
-txt_old <- list()
-
-for (i in 1:length(filenames_old)){
-  txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019/", filenames_old[i]))
-}
 
 
+###### Turn list of new words into vector
 # turn into one large string of words
 all_new <- paste(txt_new, collapse=" ")     # Combine all texts to one large string
 all_new <- tolower(all_new)                 # Make all words lower case
@@ -88,4 +80,18 @@ for(i in 1:108){
   sur.words[i] <- paste((result[[i]]$surrounding), collapse=" ") # surrounding words
 }
 
-sur.words.new <- paste(sur.words, collapse=" ")
+sur.words.new <- paste(sur.words, collapse="")
+sur.words.new.split <- strsplit(sur.words.new, " ")
+
+
+###### Turn list of old words into vector
+#### Old IPOs (2009-2010) ####
+ind_old <- grep("-2009-|-2010", filenames_full)
+filenames_old <- filenames_full[ind_old]
+
+txt_old <- list()
+
+for (i in 1:length(filenames_old)){
+  txt_old[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019/", filenames_old[i]))
+}
+
