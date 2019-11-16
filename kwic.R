@@ -113,7 +113,7 @@ sur.words.new.split <- unlist(strsplit(sur.words.new, " ")) # tokenize (split) a
 sur.words.new.split <- tolower(sur.words.new.split)
 sur.words.new.split <- removeNumbers(sur.words.new.split)
 sur.words.new.split <- removePunctuation(sur.words.new.split)
-sur.words.new.split <- unlist(lapply(sur.words.new.split, function(x) gsub(x=x,"([^a-zA-Z0-9])", "")))
+sur.words.new.split <- sapply(sur.words.new.split, function(x) gsub(x=x,"([^a-zA-Z0-9])", ""))
 sur.words.new.split <- removeWords(sur.words.new.split, stopwords("en"))
 sur.words.new.split <- stemDocument(sur.words.new.split)
 
@@ -121,15 +121,6 @@ df.new <- as.data.frame(table(sur.words.new.split))
 colnames(df.new) <- c('token', 'count')
 df.new$token <- as.character(df.new$token)
 df.new <- df.new %>% filter(token != "", nchar(token) > 2, count>1, count<150)
-
-
-
-# create a df where all words are counted in each of the data sets
-df.new <- as.data.frame(table(sur.words.new.split))
-colnames(df.new) <- c('token', 'count')
-df.new$age <- rep("new", nrow(df.new))
-
-
 
 
 #### Old IPOs (2008-2010) ####
@@ -168,6 +159,7 @@ df_old <- df_old  %>%
 df_old$token <- unlist(lapply(df_old$token, function(x) gsub(x=x,"([^a-zA-Z0-9])", "")))
 
 
+
 #### Join data frames ####
 df_old$token <- stemDocument(df_old$token)
 df_old <- df_old  %>%
@@ -198,6 +190,7 @@ df_full <- df_full %>% mutate(log_diff = log(abs(diff)))
 
 wordlist <- df_full %>% filter(token %in% df.new$token)
 
-#### Create a weightbin column ####
-
-
+#### Find lengths to calculate relative frequency ####
+txt_n <- lapply(txt_new, function(x) gsub("\\t.*", "", x=x))
+txt_n[1]
+length_txt_n <- sapply(txt_n, function(x) length(unlist(x)))
