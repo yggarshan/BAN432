@@ -135,7 +135,7 @@ df.new$age <- rep("new", nrow(df.new))
 #### Old IPOs (2008-2010) ####
 
 
-ind_old <- grep("-2010-|-2009-", filenames_full)
+ind_old <- grep("-2009-", filenames_full)
 filenames_old <- filenames_full[ind_old]
 
 txt_old <- list()
