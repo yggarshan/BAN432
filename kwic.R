@@ -60,6 +60,8 @@ for (i in 1:length(filenames_new)){
 }
 
 
+new_list = c(year_list[[1]], year_list[[2]], year_list[3])
+
 # Remove duplicate files with own function
 txt_new <- remove_duplicates(txt_new) # remove duplicate files with own created function
 
