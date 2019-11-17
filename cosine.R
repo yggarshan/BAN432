@@ -20,32 +20,62 @@ doc_16 <- (tok_sample[grep('-2016-', names(tok_sample))])
 doc_17 <- (tok_sample[grep('-2017-', names(tok_sample))])
 doc_18 <- (tok_sample[grep('-2018-', names(tok_sample))])
 doc_19 <- (tok_sample[grep('-2019-', names(tok_sample))])
-
-
-
 names(tok_sample)
 
+####### Prøver med ett og ett år ######
+filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj"))
 
-#Create index dictionary with words from 2008 (documents_by_years[[1]])
-index_2008 <- paste(unlist(Final_tok[c(documents_by_years[[1]])]))
+#### 2008 ####
+ind_new <- grep("-2008-", filenames_full)
+filenames_new <- filenames_full[ind_new]
+txt_08 <- list() # create list where IPO reports will be stored
 
-#save(documents_by_years, file ="documents_positions.RData")
-
-#Either collapse all other years data into 1 file?
-
-other_years_all <- list()
-
-#Collapse into year data files
-for (i in 2:length(documents_by_years)) {
-  other_years_all[[i-1]]<- paste(unlist(Final_tok[c(documents_by_years[[i]])]))
+for (i in 1:length(filenames_new)){
+  txt_08[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
+txt_08 <- unlist(txt_08)
+txt_08 <- sapply(txt_08, function(x) gsub("\\t.*", "", x))
+txt_08 <- sapply(txt_08, function(x) gsub("([^a-zA-Z0-9])", "", x))
+names(txt_08) <- NULL
+
+#### 2018 ####
+ind_new <- grep("-2018-", filenames_full)
+filenames_new <- filenames_full[ind_new]
+txt_18 <- list() # create list where IPO reports will be stored
+
+for (i in 1:length(filenames_new)){
+  txt_18[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
+}
+txt_18 <- unlist(txt_18)
+txt_18 <- sapply(txt_18, function(x) gsub("\\t.*", "", x))
+txt_18 <- sapply(txt_18, function(x) gsub("([^a-zA-Z0-9])", "", x))
+names(txt_18) <- NULL
+
+txt_08_18 <- list(txt_08, txt_18)
 
 
-difference_years_all <- list()
+# Create corpus # 
+new_corp <- VCorpus(VectorSource(txt_08_18))
 
-#Get a set of unique words, compared to 2008..done yearly
-for (i in 2:length(documents_by_years)) {
-  difference_years_all[[i-1]]<- other_years_all[[i-1]][c(which(!other_years_all[[i-1]] %in% index_2008))]
+# Create DTM
+dtm_new <- DocumentTermMatrix(new_corp,
+                              control=list(tolower=T,                          # Make all words lower case
+                                           stopwords=T,                        # Remove all stopwords
+                                           removePunctuation=T,                # Remove all symbols
+                                           removeNumbers=T,                    # Remove all numbers
+                                           stripWhitespace = T,                # Remove whitespace
+                                           wordLengths = c(2,20),              # Min letters 
+                                           weighting = weightBin
+                              )
+)
+
+##### Saved workspace here
+save.image(file = "txt_08_18.RData")
+
+
+# Extract all files in working directory that matches specified year(s)
+for (i in 1:length(filenames_new)){
+  txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
 
 
@@ -53,7 +83,6 @@ for (i in 2:length(documents_by_years)) {
 ################### Before using tok.RData file ###############################
 
 #### Extract file names ####
-filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj"))
 
 
 # Creating function to create all DTMs
