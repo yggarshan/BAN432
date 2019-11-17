@@ -3,24 +3,64 @@ setwd('C:/Users/Yngve/Google Drive/Skolerelatert/NHH/Master/BAN432/Final exam')
 load('common_unique_words.RData')
 load('tok.RData') # tokenized list of all documents
 
+# Function to remove duplicates text files
+remove_duplicates <- function(text_list){
+  rows_delete = c()
+  list_delete = list()
+  for (i in 1:length(text_list)) {
+    for (j in 2:length(text_list)) {
+      identical(text_list[[i]], text_list[[j]])
+      if (j < i) { rows_delete[j] <- NA
+      }   else if (identical(text_list[[i]], text_list[[j]]) == TRUE) {
+        rows_delete[j] <- j
+        list_delete[[i]] <-  rows_delete[-c(which(is.na(rows_delete)),which(rows_delete==""),which(rows_delete==i))]
+      } 
+      else if (identical(text_list[[i]], text_list[[j]]) == FALSE) {
+        rows_delete[j] <- NA
+      }
+    }
+  }
+  final_delete <- c(unique(unlist(list_delete)))  #2 documents are identical
+  final_text <- text_list[-c(final_delete)]
+}
 
-doc_08 <- lapply(tok_sample, function(x) grep('-2008-', names(tok_sample)))
+# Funksjon av det som skjer nedenfor
+# Creating function to create all DTMs
+years_list1 <- c(2008:2010)
+dtm_list <- list()
+dtm_from_year <- function(years_list){
+  for(j in 1:length(years_list)){
+    # Find all IPOs from relevant year
+    ind_new <- grep(pattern=paste0('-',as.character(years_list[j]),'-'), x = filenames_full)
+    filenames_new <- filenames_full[ind_new]
+    txt_new <- list()
+    txt_list <- list()
+    
+    for (i in 1:length(filenames_new)){
+      txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
+    }
+    txt_string <- unlist(txt_new)
+    txt_string <- sapply(txt_string, function(x) gsub("\\t.*", "", x))
+    txt_string <- sapply(txt_string, function(x) gsub("([^a-zA-Z0-9])", "", x))
+    names(txt_string) <- NULL
+    
+    list.append(txt_list, unlist(txt_string))
+  }
+    
+    # Create DTM of all words from this year
+    dtm <- DocumentTermMatrix(VCorpus(VectorSource(txt_list)), # takes corpus as input
+                              control=list(tolower=T,      # ensures that words are treated equally, no matter the case
+                                           removePunctuation=T, # to omit all dollar signs, and other punctuation
+                                           removeNumbers=T, # to omit numbers in the documents
+                                           stemming = T
+                              ))
+    
+    
+    cat('Found DTM for ', as.character(years_list[j]), '...')
+  return(dtm_list)
+  }
+  #dtm_list <- lapply(dtm_list, function(x) gsub("\\t.*", "", x=x))
 
-which(grep('-2008-', names(tok_sample)), tok_sample)
-
-doc_08 <- (tok_sample[grep('-2008-', names(tok_sample))])
-doc_09 <- (tok_sample[grep('-2009-', names(tok_sample))])
-doc_10 <- (tok_sample[grep('-2010-', names(tok_sample))])
-doc_11 <- (tok_sample[grep('-2011-', names(tok_sample))])
-doc_12 <- (tok_sample[grep('-2012-', names(tok_sample))])
-doc_13 <- (tok_sample[grep('-2013-', names(tok_sample))])
-doc_14 <- (tok_sample[grep('-2014-', names(tok_sample))])
-doc_15 <- (tok_sample[grep('-2015-', names(tok_sample))])
-doc_16 <- (tok_sample[grep('-2016-', names(tok_sample))])
-doc_17 <- (tok_sample[grep('-2017-', names(tok_sample))])
-doc_18 <- (tok_sample[grep('-2018-', names(tok_sample))])
-doc_19 <- (tok_sample[grep('-2019-', names(tok_sample))])
-names(tok_sample)
 
 ####### Prøver med ett og ett år ######
 filenames_full <- list.files(path= paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj"))
@@ -33,6 +73,9 @@ txt_08 <- list() # create list where IPO reports will be stored
 for (i in 1:length(filenames_new)){
   txt_08[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
+
+txt_08 <- remove_duplicates(txt_08)
+
 txt_08 <- unlist(txt_08)
 txt_08 <- sapply(txt_08, function(x) gsub("\\t.*", "", x))
 txt_08 <- sapply(txt_08, function(x) gsub("([^a-zA-Z0-9])", "", x))
@@ -46,12 +89,14 @@ txt_18 <- list() # create list where IPO reports will be stored
 for (i in 1:length(filenames_new)){
   txt_18[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
 }
+txt_08 <- remove_duplicates(txt_18)
+
 txt_18 <- unlist(txt_18)
 txt_18 <- sapply(txt_18, function(x) gsub("\\t.*", "", x))
 txt_18 <- sapply(txt_18, function(x) gsub("([^a-zA-Z0-9])", "", x))
 names(txt_18) <- NULL
 
-txt_08_18 <- list(txt_08, txt_18)
+txt_08_18 <- list(unlist(txt_08), unlist(txt_18))
 
 
 # Create corpus # 
@@ -64,19 +109,16 @@ dtm_new <- DocumentTermMatrix(new_corp,
                                            removePunctuation=T,                # Remove all symbols
                                            removeNumbers=T,                    # Remove all numbers
                                            stripWhitespace = T,                # Remove whitespace
-                                           wordLengths = c(2,20),              # Min letters 
-                                           weighting = weightBin
-                              )
+                                           stemming = T,
+                                           wordLengths = c(2,20))              # Min letters 
 )
 
-##### Saved workspace here
-save.image(file = "txt_08_18.RData")
+
+df <- data.frame(token=colnames(dtm_new), # subsetting only "old" 
+                 count=colSums(as.matrix(dtm_new))) # documents from dtm_A
 
 
-# Extract all files in working directory that matches specified year(s)
-for (i in 1:length(filenames_new)){
-  txt_new[[i]] <- readLines(paste0(getwd(),"/ipos_2nd_qtr_2008_2019_nouns_adj/", filenames_new[i]))
-}
+# Find cosine simularity
 
 
 
